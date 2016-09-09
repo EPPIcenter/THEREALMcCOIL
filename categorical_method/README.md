@@ -6,7 +6,7 @@
 ```
 **Input format**
 >Assuming there are n individuals and k loci, SNP calling information is stored in a matrix,
-![](https://cdn.rawgit.com/Greenhouse-Lab/THEREALMcCOIL/master/assets/equation.svg)
+![SNP Calls Matrix](https://cdn.rawgit.com/Greenhouse-Lab/THEREALMcCOIL/gh-pages/assets/equation.svg)
 >
 >where each element Sij represents SNP information at locus j of individual i, and can be 0 [homozygous minor allele], 0.5 [heterozygous], 1 [homozygous major allele] or -1 [missing data].
 
