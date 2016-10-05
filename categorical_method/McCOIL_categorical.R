@@ -1,5 +1,9 @@
 McCOIL_categorical = function(data, maxCOI=25, threshold_ind=20, threshold_site=20, totalrun=10000, burnin=1000, M0=15, e1=0.05, e2=0.05, path=getwd(), output="output.txt" ){
 
+	mcCoil_categorical_code_location = '/McCOIL_categorical_code.so'
+	if(Sys.info()['sysname'] == 'Windows') {
+		mcCoil_categorical_code_location = '/McCOIL_categorical_code.dll'
+	}
 	In_ind= rep(NA, nrow(data))
 	In_site= rep(NA, ncol(data))
 	for (i in (1:nrow(data))){
@@ -34,9 +38,9 @@ McCOIL_categorical = function(data, maxCOI=25, threshold_ind=20, threshold_site=
 	M0=rep(M0, n)
 
 	if ((n>10 & k>10)){	
-		dyn.load(paste(path, "/McCOIL_categorical_code.so", sep=""))
+		dyn.load(paste(path, mcCoil_categorical_code_location, sep=""))
 		K <- .C("McCOIL_categorical", as.integer(maxCOI), as.integer(totalrun), as.integer(n), as.integer(k), as.double(simpleS2_vec), as.integer(M0), as.double(P0), as.double(e1), as.double(e2), as.character(output), as.character(path))
-		dyn.unload(paste(path, "/McCOIL_categorical_code.so", sep=""))
+		dyn.unload(paste(path, mcCoil_categorical_code_location, sep=""))
 	} else { stop(paste("Sample size is too small (n=", n, ", k=", k,").", sep=""))}
 
 	##summarize results
