@@ -6,11 +6,13 @@
 #include "loglikelihood.h"
 #include <time.h>
 
-void McCOIL_prop (int *max, int *iterations, int *n0, int *k0, double *A1, double *A2, int *M0, double *P0, double *A, double *B, double* c0, char **file_index, char **path) {
+void McCOIL_prop (int *max, int *iterations, int *n0, int *k0, double *A1, double *A2, int *M0, double *P0, double *A, double *B, double* c0, char **file_index, char **path, int *err_method0) {
 
 ////////can be changed///////
 	double varP=0.1;  
 	double varS=0.1;
+	double varE=0.0001;
+	double upper_bound_c=0.1; //epsilon
 	
 ///////don't change////////
 	double temp_l_est=0;
@@ -22,10 +24,11 @@ void McCOIL_prop (int *max, int *iterations, int *n0, int *k0, double *A1, doubl
 	GetRNGstate();  //provide seed for random sampling
 	
 	////read in the values////
-	double c = *c0;
+	double c = *c0;  //epsilon
 	int max_moi= *max;
 	int iter = *iterations;
 	int n = *n0, k = *k0;
+	int err_method= *err_method0; //1: use pre-specified epsilon; 2: use likelihood-free sampling for epsilon; 3: update epsilon according to likelihood (for 2 and 3, pre-specified epsilon was used as initial value) 
 	int M[(n+1)], Mcan[(n+1)], Maccept[(n+1)];
 	double P[(k+1)], Pcan[(k+1)]; 
 	int Paccept[(k+1)];
@@ -38,6 +41,8 @@ void McCOIL_prop (int *max, int *iterations, int *n0, int *k0, double *A1, doubl
 	double Strue[(n+1)][(k+1)];
 	double Strue_can[(n+1)][(k+1)];
 	int Strue_accept[(n+1)][(k+1)];
+	int c_accept=0;
+	double c_can;
 	double q1=0.0, q2=0.0;
 	for (i=1;i<=n;i++){
 		M[i]= M0[i-1];
@@ -193,16 +198,61 @@ void McCOIL_prop (int *max, int *iterations, int *n0, int *k0, double *A1, doubl
 				} 
 			}
 		}
+		
+		//update c
+		if (err_method==2){
+			c = runif(0.0,upper_bound_c);
+		}
+		if (err_method==3){
+			c_can= rnorm(c,varE);
+			if (c_can>=0){
+				//calculate likelihood
+				sumcan=0;
+				sumori=0;
+				for (y=1;y<=n;y++){
+					for (x=1;x<=k;x++){
+						llcan[y][x]=logLike(M[y], P[x], dataA1[y][x], dataA2[y][x], Strue[y][x], gridA, gridB, c_can);
+						sumcan+=llcan[y][x];
+						sumori+=ll[y][x];
+					}
+				}
+				//accept
+				if (log(runif(0.0,1.0)) < (sumcan-sumori)) {
+					c= c_can;
+					c_accept++;
+					for (y=1;y<=n;y++){
+						for (x=1;x<=k;x++){
+							ll[y][x]=llcan[y][x];
+						}
+					}
+				}
+				//reject
+				else {
+					c_can= c;
+					for (y=1;y<=n;y++){
+						for (x=1;x<=k;x++){
+							llcan[y][x]=ll[y][x];
+						}
+					}
+				}
+			}
+			else{
+				//reject
+				c_can= c;
+			} //end update c
+		}
 		//print this iteration
 		fprintf(V0,"%d", i);
 		for (x=1;x<=n;x++) fprintf(V0,"\t%d",  M[x]);
 		for (x=1;x<=k;x++) fprintf(V0,"\t%.6f", P[x]);
+		if (err_method==3) fprintf(V0,"\t%.6f", c);
 		fprintf(V0,"\n");		
 	}
 	
 	fprintf(V0, "total_acceptance");
 	for (x=1;x<=n;x++) fprintf(V0,"\t%d",  Maccept[x]);
 	for (x=1;x<=k;x++) fprintf(V0,"\t%d", Paccept[x]);
+	if (err_method==3) fprintf(V0,"\t%d", c_accept);
 	fprintf(V0,"\n");
 	
 	t2 = time(NULL); // time 2

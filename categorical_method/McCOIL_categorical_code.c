@@ -5,10 +5,13 @@
 #include "loglikelihood_het.h"
 #include <time.h>
 
-void McCOIL_categorical(int *max, int *iterations, int *n0, int *k0, double *sampleS2, int *M0, double *P0, double *error1, double *error2, char **file_index, char **path) {
+void McCOIL_categorical(int *max, int *iterations, int *n0, int *k0, double *sampleS2, int *M0, double *P0, double *error1, double *error2, char **file_index, char **path, int *err_method0) {
 
 ////////can be changed///////
 	double varP=0.1;  
+	double varE=0.0001;
+	double upper_bound_e1=0.2;
+	double upper_bound_e2=0.2;
 	
 ///////don't change////////
 	int i=0, j=0, prime=0, x=0, y=0;
@@ -20,6 +23,7 @@ void McCOIL_categorical(int *max, int *iterations, int *n0, int *k0, double *sam
 	int max_moi= *max;	
 	int iter = *iterations;
 	int n = *n0, k = *k0;
+	int err_method= *err_method0; //1: use pre-specified e1 and e2; 2: use likelihood-free sampling for e1 and e2; 3: update e1 and e2 according to likelihood (for 2 and 3, pre-specified e1 and e2 were used as initial values) 
 	double e1 = *error1, e2 = *error2;
 	int M[(n+1)], Mcan[(n+1)], Maccept[(n+1)];
 	double P[(k+1)], Pcan[(k+1)]; 
@@ -28,6 +32,8 @@ void McCOIL_categorical(int *max, int *iterations, int *n0, int *k0, double *sam
 	double llcan[(n+1)][(k+1)];
 	double S2[(n+1)][(k+1)];
 	double q1=0.0, q2=0.0;
+	double e1_can, e2_can;
+	int e1_accept=0, e2_accept=0;
 	for (i=1;i<=n;i++){
 		M[i]= M0[i-1];
 		Mcan[i]= M[i];
@@ -123,10 +129,96 @@ void McCOIL_categorical(int *max, int *iterations, int *n0, int *k0, double *sam
 				Pcan[j]=P[j];
 			}
 		}
+		//update e1, e2
+		if (err_method==2){
+			e1 = runif(0.0,upper_bound_e1);
+			e2 = runif(0.0,upper_bound_e2);
+		}
+		if (err_method==3){
+			//update e1
+			e1_can= rnorm(e1,varE);
+			if ((e1_can>=0) && (e1_can<=1)){
+				//calculate likelihood
+				sumcan=0;
+				sumori=0;
+				for (y=1;y<=n;y++){
+					for (x=1;x<=k;x++){
+						llcan[y][x]=logLike_het(M[y], P[x], S2[y][x], e1_can, e2);
+						sumcan+=llcan[y][x];
+						sumori+=ll[y][x];
+					}
+				}
+				//accept
+				if (log(runif(0.0,1.0)) < (sumcan-sumori)) {
+					e1= e1_can;
+					e1_accept++;
+					for (y=1;y<=n;y++){
+						for (x=1;x<=k;x++){
+							ll[y][x]=llcan[y][x];
+						}
+					}
+				}
+				//reject
+				else {
+					e1_can= e1;
+					for (y=1;y<=n;y++){
+						for (x=1;x<=k;x++){
+							llcan[y][x]=ll[y][x];
+						}
+					}
+				}
+			}
+			else{
+				//reject
+				e1_can= e1;
+			} //end update e1
+			
+			//update e2
+			e2_can= rnorm(e2,varE);
+			if ((e2_can>=0) && (e2_can<=1)){
+				//calculate likelihood
+				sumcan=0;
+				sumori=0;
+				for (y=1;y<=n;y++){
+					for (x=1;x<=k;x++){
+						llcan[y][x]=logLike_het(M[y], P[x], S2[y][x], e1, e2_can);
+						sumcan+=llcan[y][x];
+						sumori+=ll[y][x];
+					}
+				}
+				//accept
+				if (log(runif(0.0,1.0)) < (sumcan-sumori)) {
+					e2= e2_can;
+					e2_accept++;
+					for (y=1;y<=n;y++){
+						for (x=1;x<=k;x++){
+							ll[y][x]=llcan[y][x];
+						}
+					}
+				}
+				//reject
+				else {
+					e2_can= e2;
+					for (y=1;y<=n;y++){
+						for (x=1;x<=k;x++){
+							llcan[y][x]=ll[y][x];
+						}
+					}
+				}
+			}
+			else{
+				//reject
+				e2_can= e2;
+			} //end update e2
+			
+		}
+		
+		
 		//print this iteration
 		fprintf(V0,"%d", i);
 		for (x=1;x<=n;x++) fprintf(V0,"\t%d",  M[x]);
 		for (x=1;x<=k;x++) fprintf(V0,"\t%.6f", P[x]);
+		if (err_method==3) fprintf(V0,"\t%.6f\t%.6f", e1, e2);
 		fprintf(V0,"\n");
 
 	}
@@ -134,6 +226,7 @@ void McCOIL_categorical(int *max, int *iterations, int *n0, int *k0, double *sam
 	fprintf(V0, "total_acceptance");
 	for (x=1;x<=n;x++) fprintf(V0,"\t%d",  Maccept[x]);
 	for (x=1;x<=k;x++) fprintf(V0,"\t%d", Paccept[x]);
+	if (err_method==3) fprintf(V0,"\t%d\t%d", e1_accept, e2_accept);
 	fprintf(V0,"\n");	
 	
 	t2 = time(NULL); // time 2

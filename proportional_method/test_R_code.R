@@ -10,5 +10,5 @@ dataA2= dataA2i[,-1]
 rownames(dataA1)= dataA1i[,1]
 rownames(dataA2)= dataA2i[,1]
 
-McCOIL_proportional(dataA1, dataA2, maxCOI=25, totalrun=5000, burnin=100, M0=15, epsilon=0.02, path=getwd(), output="output_test.txt" )
+McCOIL_proportional(dataA1, dataA2, maxCOI=25, totalrun=5000, burnin=100, M0=15, epsilon=0.02, err_method=3, path=getwd(), output="output_test.txt" )
 
