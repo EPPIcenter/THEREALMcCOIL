@@ -30,4 +30,4 @@
 |epsilon|The level of measurement error (εest). The default is 0.2.|
 |path|The default is the current directory.|
 |output|The name of output file. The default is “output.txt”.|
-err_method|The default is 1.<br>1: use pre-specified epsilon and treat as constant.<br>2: epsilon is estimated with COI and allele frequencies.|
+err_method|The default is 1.<br>1: use pre-specified epsilon and treat as constant.<br>3: epsilon is estimated with COI and allele frequencies.|
