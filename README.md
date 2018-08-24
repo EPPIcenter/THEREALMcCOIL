@@ -17,6 +17,7 @@ The instructions of how to compile the codes can be found in README.docx in the 
 03-14-2018: There is a web version of [THEREALMcCOIL](http://35.196.107.63/run). 
 ***
 08-24-2018: Some explanation for the output file.
+
 In the output file "output_test.txt", each row represents one MCMC run, the first column shows which run it is, and the second to the last columns show the values of different parameters for that run in an order as follows:
 
 COI of individual 1, COI of individual 2, ..., COI of last individual, allele frequency of allele 1, allele frequency of allele 2, ...., allele frequency of last allele.
